@@ -2,7 +2,7 @@
 -- This is the heart of the UI library. Define all styles and visuals here.
 -- Version: 1.0
 
-loadstring(game:HttpGet("https://pastebin.com/raw/YourThemeLinkHere"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/hdbfishwh/Synth/refs/heads/main/theme.lua"))()
 
 local Theme = {}
 
