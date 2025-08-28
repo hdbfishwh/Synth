@@ -1,90 +1,119 @@
-import pygame
-import sys
+-- Create a ScreenGui to hold our UI elements
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "FPSDisplay"
+screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+screenGui.ResetOnSpawn = false
 
-# Initialize Pygame
-pygame.init()
+-- Create a frame for the display
+local frame = Instance.new("Frame")
+frame.Name = "StatsPanel"
+frame.Size = UDim2.new(0, 300, 0, 40)
+frame.Position = UDim2.new(0.5, -150, 0, 10)
+frame.AnchorPoint = Vector2.new(0, 0)
+frame.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
 
-# Set up display
-WIDTH, HEIGHT = 800, 600
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("FPS and Mouse Position Display")
+-- Add rounded corners
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 10)
+corner.Parent = frame
 
-# Colors
-BACKGROUND = (30, 30, 40)
-TEXT_COLOR = (220, 220, 220)
-PANEL_COLOR = (50, 50, 60)
-ACCENT_COLOR = (70, 130, 180)
+-- Add a stroke
+local stroke = Instance.new("UIStroke")
+stroke.Color = Color3.fromRGB(70, 130, 180)
+stroke.Thickness = 2
+stroke.Parent = frame
 
-# Font
-font = pygame.font.SysFont("Arial", 24, bold=True)
+-- Create FPS text label
+local fpsLabel = Instance.new("TextLabel")
+fpsLabel.Name = "FPSLabel"
+fpsLabel.Size = UDim2.new(0.5, 0, 1, 0)
+fpsLabel.Position = UDim2.new(0, 0, 0, 0)
+fpsLabel.BackgroundTransparency = 1
+fpsLabel.Text = "FPS: 0"
+fpsLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+fpsLabel.Font = Enum.Font.GothamBold
+fpsLabel.TextSize = 20
+fpsLabel.Parent = frame
 
-# Clock for controlling FPS
-clock = pygame.time.Clock()
+-- Create mouse position text label
+local mouseLabel = Instance.new("TextLabel")
+mouseLabel.Name = "MouseLabel"
+mouseLabel.Size = UDim2.new(0.5, 0, 1, 0)
+mouseLabel.Position = UDim2.new(0.5, 0, 0, 0)
+mouseLabel.BackgroundTransparency = 1
+mouseLabel.Text = "Mouse: 0, 0"
+mouseLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+mouseLabel.Font = Enum.Font.GothamBold
+mouseLabel.TextSize = 20
+mouseLabel.Parent = frame
 
-def draw_fps_panel(fps, mouse_pos):
-    """Draw a panel at the top center showing FPS and mouse position"""
-    # Create text surfaces
-    fps_text = font.render(f"FPS: {fps}", True, TEXT_COLOR)
-    ms_text = font.render(f"Mouse: {mouse_pos[0]}, {mouse_pos[1]}", True, TEXT_COLOR)
-    
-    # Calculate panel dimensions
-    padding = 20
-    panel_width = fps_text.get_width() + ms_text.get_width() + padding * 3
-    panel_height = max(fps_text.get_height(), ms_text.get_height()) + padding * 2
-    
-    # Calculate panel position (top center)
-    panel_x = (WIDTH - panel_width) // 2
-    panel_y = 10
-    
-    # Draw panel background with rounded corners
-    pygame.draw.rect(screen, PANEL_COLOR, (panel_x, panel_y, panel_width, panel_height), 
-                     border_radius=10)
-    
-    # Draw border
-    pygame.draw.rect(screen, ACCENT_COLOR, (panel_x, panel_y, panel_width, panel_height), 
-                     width=2, border_radius=10)
-    
-    # Draw text
-    screen.blit(fps_text, (panel_x + padding, panel_y + padding))
-    screen.blit(ms_text, (panel_x + fps_text.get_width() + padding * 2, panel_y + padding))
+-- Variables for FPS calculation
+local lastTime = tick()
+local frameCount = 0
+local currentFPS = 0
 
-# Main game loop
-running = True
-while running:
-    # Handle events
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:
-                running = False
+-- Function to update the display
+local function updateDisplay()
+    -- Calculate FPS
+    frameCount = frameCount + 1
+    local currentTime = tick()
     
-    # Get current mouse position
-    mouse_pos = pygame.mouse.get_pos()
+    if currentTime - lastTime >= 1 then
+        currentFPS = math.floor(frameCount / (currentTime - lastTime))
+        frameCount = 0
+        lastTime = currentTime
+    end
     
-    # Clear the screen
-    screen.fill(BACKGROUND)
+    -- Get mouse position
+    local mouse = game.Players.LocalPlayer:GetMouse()
+    local mouseX = math.floor(mouse.X)
+    local mouseY = math.floor(mouse.Y)
     
-    # Draw some content to make the display more interesting
-    for i in range(10):
-        radius = 30 + i * 5
-        color = (100 + i * 15, 150, 200 - i * 10)
-        pygame.draw.circle(screen, color, mouse_pos, radius, 3)
-    
-    # Draw FPS and mouse position panel
-    current_fps = int(clock.get_fps())
-    draw_fps_panel(current_fps, mouse_pos)
-    
-    # Draw instructions
-    instructions = font.render("Move your mouse around. Press ESC to exit.", True, (180, 180, 180))
-    screen.blit(instructions, (WIDTH // 2 - instructions.get_width() // 2, HEIGHT - 50))
-    
-    # Update the display
-    pygame.display.flip()
-    
-    # Control the frame rate
-    clock.tick(60)
+    -- Update labels
+    fpsLabel.Text = "FPS: " .. currentFPS
+    mouseLabel.Text = "Mouse: " .. mouseX .. ", " .. mouseY
+end
 
-# Quit Pygame
-pygame.quit()
-sys.exit()
+-- Connect to RenderStepped to update the display every frame
+game:GetService("RunService").RenderStepped:Connect(updateDisplay)
+
+-- Optional: Make the panel draggable
+local dragging = false
+local dragInput
+local dragStart
+local startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+frame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
+
+print("FPS and Mouse Position Display loaded successfully!")
