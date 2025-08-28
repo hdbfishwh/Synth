@@ -63,14 +63,14 @@ msLabel.TextSize = 18
 msLabel.Parent = frame
 
 -- Variables for FPS calculation
-local lastTime = tick()
+local lastTime = os.clock()
 local frameCount = 0
 local currentFPS = 0
 
 -- Variables for network stats
 local lastBytesReceived = 0
 local lastBytesSent = 0
-local lastStatsTime = tick()
+local lastStatsTime = os.clock()
 
 -- Function to format bytes to Mbps
 local function formatMbps(bytes)
@@ -81,59 +81,66 @@ end
 local function updateDisplay()
     -- Calculate FPS
     frameCount = frameCount + 1
-    local currentTime = tick()
+    local currentTime = os.clock()
+    local elapsedTime = currentTime - lastTime
     
-    if currentTime - lastTime >= 1 then
-        currentFPS = math.floor(frameCount / (currentTime - lastTime))
+    if elapsedTime >= 1 then
+        currentFPS = math.floor(frameCount / elapsedTime + 0.5)
         frameCount = 0
         lastTime = currentTime
+        
+        -- Update FPS label
+        fpsLabel.Text = "FPS: " .. currentFPS
+        
+        -- Update FPS color based on value
+        if currentFPS >= 50 then
+            fpsLabel.TextColor3 = Color3.fromRGB(100, 220, 100) -- Green for good FPS
+        elseif currentFPS >= 30 then
+            fpsLabel.TextColor3 = Color3.fromRGB(220, 220, 100) -- Yellow for medium FPS
+        else
+            fpsLabel.TextColor3 = Color3.fromRGB(220, 100, 100) -- Red for low FPS
+        end
     end
     
     -- Calculate network stats every 0.5 seconds
     if currentTime - lastStatsTime >= 0.5 then
         -- Get network stats
         local stats = game:GetService("Stats")
-        local network = stats.Network
+        local network = stats and stats.Network
         
-        -- Calculate received Mbps
-        local bytesReceived = network.ServerReceivedBytes
-        local receivedMbps = formatMbps((bytesReceived - lastBytesReceived) / (currentTime - lastStatsTime))
-        lastBytesReceived = bytesReceived
-        
-        -- Calculate sent Mbps
-        local bytesSent = network.ServerSentBytes
-        local sentMbps = formatMbps((bytesSent - lastBytesSent) / (currentTime - lastStatsTime))
-        lastBytesSent = bytesSent
-        
-        -- Get ping
-        local ping = math.floor(stats.Network.ServerStatsItem["Data Ping"]:GetValue() or 0)
-        
-        -- Update labels
-        mbpsLabel.Text = "Net: " .. receivedMbps .. "↓ " .. sentMbps .. "↑"
-        msLabel.Text = "Ping: " .. ping .. "ms"
-        
-        -- Update ping color based on value
-        if ping < 100 then
-            msLabel.TextColor3 = Color3.fromRGB(100, 220, 100) -- Green for good ping
-        elseif ping < 200 then
-            msLabel.TextColor3 = Color3.fromRGB(220, 220, 100) -- Yellow for medium ping
-        else
-            msLabel.TextColor3 = Color3.fromRGB(220, 100, 100) -- Red for high ping
+        if network then
+            -- Calculate received Mbps
+            local bytesReceived = network.ServerReceivedBytes or 0
+            local receivedMbps = formatMbps((bytesReceived - lastBytesReceived) / (currentTime - lastStatsTime))
+            lastBytesReceived = bytesReceived
+            
+            -- Calculate sent Mbps
+            local bytesSent = network.ServerSentBytes or 0
+            local sentMbps = formatMbps((bytesSent - lastBytesSent) / (currentTime - lastStatsTime))
+            lastBytesSent = bytesSent
+            
+            -- Get ping
+            local ping = 0
+            local pingStat = network.ServerStatsItem and network.ServerStatsItem["Data Ping"]
+            if pingStat then
+                ping = math.floor(pingStat:GetValue() or 0)
+            end
+            
+            -- Update labels
+            mbpsLabel.Text = "Net: " .. receivedMbps .. "↓ " .. sentMbps .. "↑"
+            msLabel.Text = "Ping: " .. ping .. "ms"
+            
+            -- Update ping color based on value
+            if ping < 100 then
+                msLabel.TextColor3 = Color3.fromRGB(100, 220, 100) -- Green for good ping
+            elseif ping < 200 then
+                msLabel.TextColor3 = Color3.fromRGB(220, 220, 100) -- Yellow for medium ping
+            else
+                msLabel.TextColor3 = Color3.fromRGB(220, 100, 100) -- Red for high ping
+            end
         end
         
         lastStatsTime = currentTime
-    end
-    
-    -- Update FPS label
-    fpsLabel.Text = "FPS: " .. currentFPS
-    
-    -- Update FPS color based on value
-    if currentFPS >= 50 then
-        fpsLabel.TextColor3 = Color3.fromRGB(100, 220, 100) -- Green for good FPS
-    elseif currentFPS >= 30 then
-        fpsLabel.TextColor3 = Color3.fromRGB(220, 220, 100) -- Yellow for medium FPS
-    else
-        fpsLabel.TextColor3 = Color3.fromRGB(220, 100, 100) -- Red for low FPS
     end
 end
 
